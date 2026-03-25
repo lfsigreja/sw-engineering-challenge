@@ -1,0 +1,128 @@
+{
+  "info": {
+    "name": "Bloqit API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "bloqId",
+      "value": "c3ee858c-f3d8-45a3-803d-e080649bbb6f",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bloqs",
+      "item": [
+        {
+          "name": "List bloqs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/bloqs",
+              "host": ["{{baseUrl}}"],
+              "path": ["bloqs"]
+            }
+          }
+        },
+        {
+          "name": "Find bloq by id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/bloqs/{{bloqId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["bloqs", "{{bloqId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create bloq",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.collectionVariables.set('bloqId', json.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"New Bloq\",\n  \"address\": \"456 New Street, City, Country\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bloqs",
+              "host": ["{{baseUrl}}"],
+              "path": ["bloqs"]
+            }
+          }
+        },
+        {
+          "name": "Update bloq",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Bloq Title\",\n  \"address\": \"789 Updated Ave, City, Country\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bloqs/{{bloqId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["bloqs", "{{bloqId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete bloq",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/bloqs/{{bloqId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["bloqs", "{{bloqId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
