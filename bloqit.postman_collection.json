@@ -13,6 +13,11 @@
       "key": "bloqId",
       "value": "c3ee858c-f3d8-45a3-803d-e080649bbb6f",
       "type": "string"
+    },
+    {
+      "key": "lockerId",
+      "value": "1b8d1e89-2514-4d91-b813-044bf0ce8d20",
+      "type": "string"
     }
   ],
   "item": [
@@ -119,6 +124,98 @@
               "raw": "{{baseUrl}}/bloqs/{{bloqId}}",
               "host": ["{{baseUrl}}"],
               "path": ["bloqs", "{{bloqId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lockers",
+      "item": [
+        {
+          "name": "List lockers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/lockers",
+              "host": ["{{baseUrl}}"],
+              "path": ["lockers"]
+            }
+          }
+        },
+        {
+          "name": "Find locker by id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/lockers/{{lockerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lockers", "{{lockerId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create locker",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.collectionVariables.set('lockerId', json.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bloqId\": \"{{bloqId}}\",\n  \"status\": \"OPEN\",\n  \"isOccupied\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lockers",
+              "host": ["{{baseUrl}}"],
+              "path": ["lockers"]
+            }
+          }
+        },
+        {
+          "name": "Update locker",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CLOSED\",\n  \"isOccupied\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lockers/{{lockerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lockers", "{{lockerId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete locker",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/lockers/{{lockerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lockers", "{{lockerId}}"]
             }
           }
         }

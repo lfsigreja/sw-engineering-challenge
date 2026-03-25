@@ -4,6 +4,7 @@ import { DomainError } from "../../shared/utils/domain-error-handler.js";
 
 const ERROR_CODE_TO_STATUS: Record<string, number> = {
   BLOQ_NOT_FOUND: 404,
+  BLOQ_HAS_LOCKERS: 409,
   RENT_NOT_FOUND: 404,
   LOCKER_NOT_FOUND: 404,
   INVALID_RENT_STATUS: 409,

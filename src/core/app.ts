@@ -1,9 +1,11 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
-import { JsonStore } from "../shared/infrastructure/json-store.js";
 import { BloqJsonRepository } from "../modules/bloqs/infra/bloq.json-repository.js";
 import { registerBloqRoutes } from "../modules/bloqs/infra/bloq.routes.js";
+import { LockerJsonRepository } from "../modules/lockers/infra/locker.json-repository.js";
+import { registerLockerRoutes } from "../modules/lockers/infra/locker.routes.js";
+import { JsonStore } from "../shared/infrastructure/json-store.js";
 import { registerErrorHandler } from "./plugins/error-handler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,9 +18,11 @@ export function buildApp() {
 
   const store = new JsonStore(dataDir);
   const bloqRepo = new BloqJsonRepository(store);
+  const lockerRepo = new LockerJsonRepository(store);
 
   app.get("/health", async () => ({ ok: true }));
-  registerBloqRoutes(app, bloqRepo);
+  registerBloqRoutes(app, bloqRepo, lockerRepo);
+  registerLockerRoutes(app, lockerRepo, bloqRepo);
 
   return app;
 }

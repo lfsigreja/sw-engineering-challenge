@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import type { ILockerRepository } from "../../lockers/domain/locker.repository.js";
 import { CreateBloqUseCase } from "../application/create-bloq.use-case.js";
 import { DeleteBloqUseCase } from "../application/delete-bloq.use-case.js";
 import { FindBloqUseCase } from "../application/find-bloq.use-case.js";
@@ -17,12 +18,16 @@ const updateBodySchema = z.object({
   address: z.string().min(1).optional(),
 });
 
-export function registerBloqRoutes(app: FastifyInstance, repo: IBloqRepository): void {
-  const list = new ListBloqsUseCase(repo);
-  const find = new FindBloqUseCase(repo);
-  const create = new CreateBloqUseCase(repo);
-  const update = new UpdateBloqUseCase(repo);
-  const remove = new DeleteBloqUseCase(repo);
+export function registerBloqRoutes(
+  app: FastifyInstance,
+  bloqRepo: IBloqRepository,
+  lockerRepo: ILockerRepository,
+): void {
+  const list = new ListBloqsUseCase(bloqRepo);
+  const find = new FindBloqUseCase(bloqRepo);
+  const create = new CreateBloqUseCase(bloqRepo);
+  const update = new UpdateBloqUseCase(bloqRepo);
+  const remove = new DeleteBloqUseCase(bloqRepo, lockerRepo);
 
   app.get("/bloqs", async (_req, reply) => {
     const bloqs = await list.execute();

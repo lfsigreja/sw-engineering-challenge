@@ -5,8 +5,10 @@ import { registerErrorHandler } from "../../../../src/core/plugins/error-handler
 import { registerBloqRoutes } from "../../../../src/modules/bloqs/infra/bloq.routes.js";
 import type { IBloqRepository } from "../../../../src/modules/bloqs/domain/bloq.repository.js";
 import type { Bloq } from "../../../../src/modules/bloqs/domain/bloq.js";
+import type { ILockerRepository } from "../../../../src/modules/lockers/domain/locker.repository.js";
+import type { Locker } from "../../../../src/modules/lockers/domain/locker.js";
 
-const makeMockRepo = (): IBloqRepository => ({
+const makeMockBloqRepo = (): IBloqRepository => ({
   findAll: vi.fn(),
   findById: vi.fn(),
   create: vi.fn(),
@@ -14,10 +16,19 @@ const makeMockRepo = (): IBloqRepository => ({
   delete: vi.fn(),
 });
 
-function buildTestApp(repo: IBloqRepository): FastifyInstance {
+const makeMockLockerRepo = (): ILockerRepository => ({
+  findAll: vi.fn(),
+  findById: vi.fn(),
+  findByBloqId: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+});
+
+function buildTestApp(bloqRepo: IBloqRepository, lockerRepo: ILockerRepository): FastifyInstance {
   const app = Fastify();
   registerErrorHandler(app);
-  registerBloqRoutes(app, repo);
+  registerBloqRoutes(app, bloqRepo, lockerRepo);
   return app;
 }
 
@@ -26,20 +37,24 @@ const SEED: Bloq[] = [
   { id: "uuid-2", title: "Bloq B", address: "Street B" },
 ];
 
+const LOCKER: Locker = { id: "l-1", bloqId: "uuid-1", status: "OPEN", isOccupied: false };
+
 describe("GET /bloqs", () => {
-  let repo: IBloqRepository;
+  let bloqRepo: IBloqRepository;
+  let lockerRepo: ILockerRepository;
   let app: FastifyInstance;
 
   beforeEach(async () => {
-    repo = makeMockRepo();
-    app = buildTestApp(repo);
+    bloqRepo = makeMockBloqRepo();
+    lockerRepo = makeMockLockerRepo();
+    app = buildTestApp(bloqRepo, lockerRepo);
     await app.ready();
   });
 
   afterEach(() => app.close());
 
   it("returns 200 with the list of bloqs", async () => {
-    vi.mocked(repo.findAll).mockResolvedValue(SEED);
+    vi.mocked(bloqRepo.findAll).mockResolvedValue(SEED);
 
     const res = await supertest(app.server).get("/bloqs");
 
@@ -48,7 +63,7 @@ describe("GET /bloqs", () => {
   });
 
   it("returns 200 with an empty array when there are no bloqs", async () => {
-    vi.mocked(repo.findAll).mockResolvedValue([]);
+    vi.mocked(bloqRepo.findAll).mockResolvedValue([]);
 
     const res = await supertest(app.server).get("/bloqs");
 
@@ -58,19 +73,21 @@ describe("GET /bloqs", () => {
 });
 
 describe("GET /bloqs/:id", () => {
-  let repo: IBloqRepository;
+  let bloqRepo: IBloqRepository;
+  let lockerRepo: ILockerRepository;
   let app: FastifyInstance;
 
   beforeEach(async () => {
-    repo = makeMockRepo();
-    app = buildTestApp(repo);
+    bloqRepo = makeMockBloqRepo();
+    lockerRepo = makeMockLockerRepo();
+    app = buildTestApp(bloqRepo, lockerRepo);
     await app.ready();
   });
 
   afterEach(() => app.close());
 
   it("returns 200 with the bloq when found", async () => {
-    vi.mocked(repo.findById).mockResolvedValue(SEED[0]);
+    vi.mocked(bloqRepo.findById).mockResolvedValue(SEED[0]);
 
     const res = await supertest(app.server).get("/bloqs/uuid-1");
 
@@ -79,7 +96,7 @@ describe("GET /bloqs/:id", () => {
   });
 
   it("returns 404 when the bloq does not exist", async () => {
-    vi.mocked(repo.findById).mockResolvedValue(undefined);
+    vi.mocked(bloqRepo.findById).mockResolvedValue(undefined);
 
     const res = await supertest(app.server).get("/bloqs/missing-id");
 
@@ -89,12 +106,14 @@ describe("GET /bloqs/:id", () => {
 });
 
 describe("POST /bloqs", () => {
-  let repo: IBloqRepository;
+  let bloqRepo: IBloqRepository;
+  let lockerRepo: ILockerRepository;
   let app: FastifyInstance;
 
   beforeEach(async () => {
-    repo = makeMockRepo();
-    app = buildTestApp(repo);
+    bloqRepo = makeMockBloqRepo();
+    lockerRepo = makeMockLockerRepo();
+    app = buildTestApp(bloqRepo, lockerRepo);
     await app.ready();
   });
 
@@ -102,7 +121,7 @@ describe("POST /bloqs", () => {
 
   it("returns 201 with the created bloq", async () => {
     const created: Bloq = { id: "new-uuid", title: "New Bloq", address: "New St" };
-    vi.mocked(repo.create).mockResolvedValue(created);
+    vi.mocked(bloqRepo.create).mockResolvedValue(created);
 
     const res = await supertest(app.server)
       .post("/bloqs")
@@ -126,12 +145,14 @@ describe("POST /bloqs", () => {
 });
 
 describe("PATCH /bloqs/:id", () => {
-  let repo: IBloqRepository;
+  let bloqRepo: IBloqRepository;
+  let lockerRepo: ILockerRepository;
   let app: FastifyInstance;
 
   beforeEach(async () => {
-    repo = makeMockRepo();
-    app = buildTestApp(repo);
+    bloqRepo = makeMockBloqRepo();
+    lockerRepo = makeMockLockerRepo();
+    app = buildTestApp(bloqRepo, lockerRepo);
     await app.ready();
   });
 
@@ -139,8 +160,8 @@ describe("PATCH /bloqs/:id", () => {
 
   it("returns 200 with the updated bloq", async () => {
     const updated: Bloq = { id: "uuid-1", title: "Updated", address: "Street A" };
-    vi.mocked(repo.findById).mockResolvedValue(SEED[0]);
-    vi.mocked(repo.update).mockResolvedValue(updated);
+    vi.mocked(bloqRepo.findById).mockResolvedValue(SEED[0]);
+    vi.mocked(bloqRepo.update).mockResolvedValue(updated);
 
     const res = await supertest(app.server)
       .patch("/bloqs/uuid-1")
@@ -151,7 +172,7 @@ describe("PATCH /bloqs/:id", () => {
   });
 
   it("returns 404 when the bloq does not exist", async () => {
-    vi.mocked(repo.findById).mockResolvedValue(undefined);
+    vi.mocked(bloqRepo.findById).mockResolvedValue(undefined);
 
     const res = await supertest(app.server)
       .patch("/bloqs/missing-id")
@@ -163,20 +184,23 @@ describe("PATCH /bloqs/:id", () => {
 });
 
 describe("DELETE /bloqs/:id", () => {
-  let repo: IBloqRepository;
+  let bloqRepo: IBloqRepository;
+  let lockerRepo: ILockerRepository;
   let app: FastifyInstance;
 
   beforeEach(async () => {
-    repo = makeMockRepo();
-    app = buildTestApp(repo);
+    bloqRepo = makeMockBloqRepo();
+    lockerRepo = makeMockLockerRepo();
+    app = buildTestApp(bloqRepo, lockerRepo);
     await app.ready();
   });
 
   afterEach(() => app.close());
 
   it("returns 204 when the bloq is deleted", async () => {
-    vi.mocked(repo.findById).mockResolvedValue(SEED[0]);
-    vi.mocked(repo.delete).mockResolvedValue();
+    vi.mocked(bloqRepo.findById).mockResolvedValue(SEED[0]);
+    vi.mocked(lockerRepo.findByBloqId).mockResolvedValue([]);
+    vi.mocked(bloqRepo.delete).mockResolvedValue();
 
     const res = await supertest(app.server).delete("/bloqs/uuid-1");
 
@@ -184,11 +208,21 @@ describe("DELETE /bloqs/:id", () => {
   });
 
   it("returns 404 when the bloq does not exist", async () => {
-    vi.mocked(repo.findById).mockResolvedValue(undefined);
+    vi.mocked(bloqRepo.findById).mockResolvedValue(undefined);
 
     const res = await supertest(app.server).delete("/bloqs/missing-id");
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe("BLOQ_NOT_FOUND");
+  });
+
+  it("returns 409 when the bloq still has associated lockers", async () => {
+    vi.mocked(bloqRepo.findById).mockResolvedValue(SEED[0]);
+    vi.mocked(lockerRepo.findByBloqId).mockResolvedValue([LOCKER]);
+
+    const res = await supertest(app.server).delete("/bloqs/uuid-1");
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe("BLOQ_HAS_LOCKERS");
   });
 });
