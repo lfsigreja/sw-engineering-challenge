@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { IBloqRepository } from "../../bloqs/domain/bloq.repository.js";
+import type { IRentRepository } from "../../rents/domain/rent.repository.js";
 import { CreateLockerUseCase } from "../application/create-locker.use-case.js";
 import { DeleteLockerUseCase } from "../application/delete-locker.use-case.js";
 import { FindLockerUseCase } from "../application/find-locker.use-case.js";
@@ -23,12 +24,13 @@ export function registerLockerRoutes(
   app: FastifyInstance,
   lockerRepo: ILockerRepository,
   bloqRepo: IBloqRepository,
+  rentRepo: IRentRepository,
 ): void {
   const list = new ListLockersUseCase(lockerRepo);
   const find = new FindLockerUseCase(lockerRepo);
   const create = new CreateLockerUseCase(lockerRepo, bloqRepo);
   const update = new UpdateLockerUseCase(lockerRepo);
-  const remove = new DeleteLockerUseCase(lockerRepo);
+  const remove = new DeleteLockerUseCase(lockerRepo, rentRepo);
 
   app.get("/lockers", async (_req, reply) => {
     const lockers = await list.execute();

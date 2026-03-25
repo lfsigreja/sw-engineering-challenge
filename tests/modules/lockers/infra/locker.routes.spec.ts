@@ -1,12 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 import supertest from "supertest";
 import { registerErrorHandler } from "../../../../src/core/plugins/error-handler.js";
-import { registerLockerRoutes } from "../../../../src/modules/lockers/infra/locker.routes.js";
 import type { IBloqRepository } from "../../../../src/modules/bloqs/domain/bloq.repository.js";
 import type { Bloq } from "../../../../src/modules/bloqs/domain/bloq.js";
-import type { ILockerRepository } from "../../../../src/modules/lockers/domain/locker.repository.js";
 import type { Locker } from "../../../../src/modules/lockers/domain/locker.js";
+import type { ILockerRepository } from "../../../../src/modules/lockers/domain/locker.repository.js";
+import { registerLockerRoutes } from "../../../../src/modules/lockers/infra/locker.routes.js";
+import type { IRentRepository } from "../../../../src/modules/rents/domain/rent.repository.js";
 
 const makeMockBloqRepo = (): IBloqRepository => ({
   findAll: vi.fn(),
@@ -25,10 +26,23 @@ const makeMockLockerRepo = (): ILockerRepository => ({
   delete: vi.fn(),
 });
 
-function buildTestApp(lockerRepo: ILockerRepository, bloqRepo: IBloqRepository): FastifyInstance {
+const makeMockRentRepo = (): IRentRepository => ({
+  findAll: vi.fn(),
+  findById: vi.fn(),
+  findActiveByLockerId: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+});
+
+function buildTestApp(
+  lockerRepo: ILockerRepository,
+  bloqRepo: IBloqRepository,
+  rentRepo: IRentRepository,
+): FastifyInstance {
   const app = Fastify();
   registerErrorHandler(app);
-  registerLockerRoutes(app, lockerRepo, bloqRepo);
+  registerLockerRoutes(app, lockerRepo, bloqRepo, rentRepo);
   return app;
 }
 
@@ -43,12 +57,14 @@ const SEED: Locker[] = [
 describe("GET /lockers", () => {
   let lockerRepo: ILockerRepository;
   let bloqRepo: IBloqRepository;
+  let rentRepo: IRentRepository;
   let app: FastifyInstance;
 
   beforeEach(async () => {
     lockerRepo = makeMockLockerRepo();
     bloqRepo = makeMockBloqRepo();
-    app = buildTestApp(lockerRepo, bloqRepo);
+    rentRepo = makeMockRentRepo();
+    app = buildTestApp(lockerRepo, bloqRepo, rentRepo);
     await app.ready();
   });
 
@@ -76,12 +92,14 @@ describe("GET /lockers", () => {
 describe("GET /lockers/:id", () => {
   let lockerRepo: ILockerRepository;
   let bloqRepo: IBloqRepository;
+  let rentRepo: IRentRepository;
   let app: FastifyInstance;
 
   beforeEach(async () => {
     lockerRepo = makeMockLockerRepo();
     bloqRepo = makeMockBloqRepo();
-    app = buildTestApp(lockerRepo, bloqRepo);
+    rentRepo = makeMockRentRepo();
+    app = buildTestApp(lockerRepo, bloqRepo, rentRepo);
     await app.ready();
   });
 
@@ -109,19 +127,26 @@ describe("GET /lockers/:id", () => {
 describe("POST /lockers", () => {
   let lockerRepo: ILockerRepository;
   let bloqRepo: IBloqRepository;
+  let rentRepo: IRentRepository;
   let app: FastifyInstance;
 
   beforeEach(async () => {
     lockerRepo = makeMockLockerRepo();
     bloqRepo = makeMockBloqRepo();
-    app = buildTestApp(lockerRepo, bloqRepo);
+    rentRepo = makeMockRentRepo();
+    app = buildTestApp(lockerRepo, bloqRepo, rentRepo);
     await app.ready();
   });
 
   afterEach(() => app.close());
 
   it("returns 201 with the created locker when the bloq exists", async () => {
-    const created: Locker = { id: "2191e1b5-99c7-45df-8302-998be394be48", bloqId: BLOQ_ID, status: "OPEN", isOccupied: false };
+    const created: Locker = {
+      id: "2191e1b5-99c7-45df-8302-998be394be48",
+      bloqId: BLOQ_ID,
+      status: "OPEN",
+      isOccupied: false,
+    };
     vi.mocked(bloqRepo.findById).mockResolvedValue(BLOQ);
     vi.mocked(lockerRepo.create).mockResolvedValue(created);
 
@@ -162,12 +187,14 @@ describe("POST /lockers", () => {
 describe("PATCH /lockers/:id", () => {
   let lockerRepo: ILockerRepository;
   let bloqRepo: IBloqRepository;
+  let rentRepo: IRentRepository;
   let app: FastifyInstance;
 
   beforeEach(async () => {
     lockerRepo = makeMockLockerRepo();
     bloqRepo = makeMockBloqRepo();
-    app = buildTestApp(lockerRepo, bloqRepo);
+    rentRepo = makeMockRentRepo();
+    app = buildTestApp(lockerRepo, bloqRepo, rentRepo);
     await app.ready();
   });
 
@@ -201,12 +228,14 @@ describe("PATCH /lockers/:id", () => {
 describe("DELETE /lockers/:id", () => {
   let lockerRepo: ILockerRepository;
   let bloqRepo: IBloqRepository;
+  let rentRepo: IRentRepository;
   let app: FastifyInstance;
 
   beforeEach(async () => {
     lockerRepo = makeMockLockerRepo();
     bloqRepo = makeMockBloqRepo();
-    app = buildTestApp(lockerRepo, bloqRepo);
+    rentRepo = makeMockRentRepo();
+    app = buildTestApp(lockerRepo, bloqRepo, rentRepo);
     await app.ready();
   });
 
@@ -214,6 +243,7 @@ describe("DELETE /lockers/:id", () => {
 
   it("returns 204 when the locker is deleted", async () => {
     vi.mocked(lockerRepo.findById).mockResolvedValue(SEED[0]);
+    vi.mocked(rentRepo.findActiveByLockerId).mockResolvedValue(undefined);
     vi.mocked(lockerRepo.delete).mockResolvedValue();
 
     const res = await supertest(app.server).delete("/lockers/l-1");
@@ -228,5 +258,21 @@ describe("DELETE /lockers/:id", () => {
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe("LOCKER_NOT_FOUND");
+  });
+
+  it("returns 409 when the locker has an active rent", async () => {
+    vi.mocked(lockerRepo.findById).mockResolvedValue(SEED[0]);
+    vi.mocked(rentRepo.findActiveByLockerId).mockResolvedValue({
+      id: "r-1",
+      lockerId: SEED[0]!.id,
+      status: "WAITING_DROPOFF",
+      weight: 1,
+      size: "S",
+    });
+
+    const res = await supertest(app.server).delete(`/lockers/${SEED[0]!.id}`);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe("LOCKER_HAS_ACTIVE_RENT");
   });
 });

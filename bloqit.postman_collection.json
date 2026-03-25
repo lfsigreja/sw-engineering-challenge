@@ -18,6 +18,11 @@
       "key": "lockerId",
       "value": "1b8d1e89-2514-4d91-b813-044bf0ce8d20",
       "type": "string"
+    },
+    {
+      "key": "rentId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -216,6 +221,140 @@
               "raw": "{{baseUrl}}/lockers/{{lockerId}}",
               "host": ["{{baseUrl}}"],
               "path": ["lockers", "{{lockerId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rents",
+      "item": [
+        {
+          "name": "List rents",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/rents",
+              "host": ["{{baseUrl}}"],
+              "path": ["rents"]
+            }
+          }
+        },
+        {
+          "name": "Get rent",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/rents/{{rentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["rents", "{{rentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create rent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.id) pm.collectionVariables.set('rentId', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weight\": 5,\n  \"size\": \"M\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/rents",
+              "host": ["{{baseUrl}}"],
+              "path": ["rents"]
+            }
+          }
+        },
+        {
+          "name": "Transition rent to WAITING_DROPOFF",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"WAITING_DROPOFF\",\n  \"lockerId\": \"{{lockerId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/rents/{{rentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["rents", "{{rentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Transition rent to WAITING_PICKUP",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"WAITING_PICKUP\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/rents/{{rentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["rents", "{{rentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Transition rent to DELIVERED",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DELIVERED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/rents/{{rentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["rents", "{{rentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete rent",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/rents/{{rentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["rents", "{{rentId}}"]
             }
           }
         }

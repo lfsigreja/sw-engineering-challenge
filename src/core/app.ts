@@ -5,6 +5,8 @@ import { BloqJsonRepository } from "../modules/bloqs/infra/bloq.json-repository.
 import { registerBloqRoutes } from "../modules/bloqs/infra/bloq.routes.js";
 import { LockerJsonRepository } from "../modules/lockers/infra/locker.json-repository.js";
 import { registerLockerRoutes } from "../modules/lockers/infra/locker.routes.js";
+import { RentJsonRepository } from "../modules/rents/infra/rent.json-repository.js";
+import { registerRentRoutes } from "../modules/rents/infra/rent.routes.js";
 import { JsonStore } from "../shared/infrastructure/json-store.js";
 import { registerErrorHandler } from "./plugins/error-handler.js";
 
@@ -19,10 +21,12 @@ export function buildApp() {
   const store = new JsonStore(dataDir);
   const bloqRepo = new BloqJsonRepository(store);
   const lockerRepo = new LockerJsonRepository(store);
+  const rentRepo = new RentJsonRepository(store);
 
   app.get("/health", async () => ({ ok: true }));
   registerBloqRoutes(app, bloqRepo, lockerRepo);
-  registerLockerRoutes(app, lockerRepo, bloqRepo);
+  registerLockerRoutes(app, lockerRepo, bloqRepo, rentRepo);
+  registerRentRoutes(app, rentRepo, lockerRepo);
 
   return app;
 }
