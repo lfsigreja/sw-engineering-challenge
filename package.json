@@ -7,7 +7,7 @@
     "test": "vitest run",
     "dev": "tsx watch src/core/server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/core/server.js",
+    "start": "node dist/src/core/server.js",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
