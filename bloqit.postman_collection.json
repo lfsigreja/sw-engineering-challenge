@@ -21,23 +21,68 @@
     },
     {
       "key": "rentId",
-      "value": "",
+      "value": "50be06a8-1dec-4b18-a23c-e98588207752",
       "type": "string"
+    },
+    {
+      "key": "correlationId",
+      "value": "my-trace-id-001",
+      "type": "string",
+      "description": "Passed as x-correlation-id request header and echoed back in the response. Leave blank to let the server generate a UUID."
     }
   ],
   "item": [
     {
-      "name": "Health",
+      "name": "Observability",
       "item": [
         {
-          "name": "Health check",
+          "name": "Liveness — GET /health",
           "request": {
             "method": "GET",
+            "header": [
+              {
+                "key": "x-correlation-id",
+                "value": "{{correlationId}}",
+                "description": "Optional. Echoed back in the response header."
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/health",
               "host": ["{{baseUrl}}"],
               "path": ["health"]
-            }
+            },
+            "description": "Liveness probe. Returns { status, uptime }. Should always be fast; used by Kubernetes/Docker to detect a crashed process."
+          }
+        },
+        {
+          "name": "Readiness — GET /ready",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-correlation-id",
+                "value": "{{correlationId}}",
+                "description": "Optional. Echoed back in the response header."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["ready"]
+            },
+            "description": "Readiness probe. Verifies the data directory is writable and returns the deployed version. Returns 503 when the service is not ready to accept traffic."
+          }
+        },
+        {
+          "name": "Prometheus metrics — GET /metrics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["metrics"]
+            },
+            "description": "Exposes Prometheus-format metrics: default Node.js process metrics + http_request_duration_seconds histogram labelled by method, route, and status_code."
           }
         }
       ]
@@ -49,6 +94,9 @@
           "name": "List bloqs",
           "request": {
             "method": "GET",
+            "header": [
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/bloqs",
               "host": ["{{baseUrl}}"],
@@ -60,6 +108,9 @@
           "name": "Find bloq by id",
           "request": {
             "method": "GET",
+            "header": [
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/bloqs/{{bloqId}}",
               "host": ["{{baseUrl}}"],
@@ -84,10 +135,8 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
             ],
             "body": {
               "mode": "raw",
@@ -105,10 +154,8 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
             ],
             "body": {
               "mode": "raw",
@@ -125,6 +172,9 @@
           "name": "Delete bloq",
           "request": {
             "method": "DELETE",
+            "header": [
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/bloqs/{{bloqId}}",
               "host": ["{{baseUrl}}"],
@@ -141,6 +191,9 @@
           "name": "List lockers",
           "request": {
             "method": "GET",
+            "header": [
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/lockers",
               "host": ["{{baseUrl}}"],
@@ -152,6 +205,9 @@
           "name": "Find locker by id",
           "request": {
             "method": "GET",
+            "header": [
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/lockers/{{lockerId}}",
               "host": ["{{baseUrl}}"],
@@ -176,10 +232,8 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
             ],
             "body": {
               "mode": "raw",
@@ -197,10 +251,8 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
             ],
             "body": {
               "mode": "raw",
@@ -217,6 +269,9 @@
           "name": "Delete locker",
           "request": {
             "method": "DELETE",
+            "header": [
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/lockers/{{lockerId}}",
               "host": ["{{baseUrl}}"],
@@ -233,6 +288,9 @@
           "name": "List rents",
           "request": {
             "method": "GET",
+            "header": [
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/rents",
               "host": ["{{baseUrl}}"],
@@ -244,6 +302,9 @@
           "name": "Get rent",
           "request": {
             "method": "GET",
+            "header": [
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/rents/{{rentId}}",
               "host": ["{{baseUrl}}"],
@@ -268,10 +329,8 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
             ],
             "body": {
               "mode": "raw",
@@ -289,10 +348,8 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
             ],
             "body": {
               "mode": "raw",
@@ -310,10 +367,8 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
             ],
             "body": {
               "mode": "raw",
@@ -331,10 +386,8 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
             ],
             "body": {
               "mode": "raw",
@@ -351,6 +404,9 @@
           "name": "Delete rent",
           "request": {
             "method": "DELETE",
+            "header": [
+              { "key": "x-correlation-id", "value": "{{correlationId}}" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/rents/{{rentId}}",
               "host": ["{{baseUrl}}"],
