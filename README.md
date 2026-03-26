@@ -36,65 +36,6 @@ flowchart LR
   JsonStore --> Files[Arquivos JSON data]
 ```
 
-## 2. Estrutura de Pastas e Coesão
-
-### Árvore de diretórios (visão geral)
-
-```text
-src/
-  core/
-    app.ts                 # composição (wiring) do servidor e injeção de dependências
-    server.ts              # bootstrap do listen
-    plugins/
-      error-handler.ts     # mapeia DomainError/ZodError para HTTP
-  shared/
-    application/
-      find-entity.ts       # lança erro de domínio quando entidade não existe
-    infrastructure/
-      json-store.ts        # leitura/escrita genérica de coleções JSON
-    utils/
-      domain-error-handler.ts # base de DomainError (código e status HTTP)
-  modules/
-    bloqs/
-      application/
-        *.use-case.ts
-      domain/
-        bloq.ts
-        bloq.repository.ts
-        bloq.errors.ts
-      infra/
-        bloq.routes.ts
-        bloq.json-repository.ts
-    lockers/
-      application/
-        *.use-case.ts
-      domain/
-        locker.ts
-        locker.repository.ts
-        locker.errors.ts
-      infra/
-        locker.routes.ts
-        locker.json-repository.ts
-    rents/
-      application/
-        *.use-case.ts
-      domain/
-        rent.ts
-        rent.repository.ts
-        rent.errors.ts
-      infra/
-        rent.routes.ts
-        rent.json-repository.ts
-
-tests/
-  modules/
-    <feature>/
-      application/
-        *.spec.ts            # unit tests de Use Cases
-      infra/
-        *.spec.ts            # testes de rotas e integração com infraestrutura
-```
-
 ### Por que isso sustenta *scalability* e *strategic swings*
 
 - **Baixo acoplamento entre features**: cada módulo encapsula regras e portas próprias (`src/modules/<feature>/...`). Mudanças em `rents` não exigem refatorar `lockers`, exceto quando um contrato comum muda.
@@ -104,67 +45,7 @@ tests/
 > [!NOTE]
 > O “composition root” está em `src/core/app.ts`, centralizando o wiring. Isso evita espalhar dependências pelo projeto e simplifica alterações no bootstrapping.
 
-## 3. Fluxo de uma Funcionalidade (Feature Flow)
-
-### Feature escolhida: `TransitionRent` (PATCH `/rents/:id`)
-
-O ciclo de vida de uma requisição para transicionar o status de um rent é:
-
-1. O **Cliente HTTP** chama `PATCH /rents/:id` com `{ status, lockerId? }`
-2. A **Fastify Route** valida o body com **Zod**
-3. A rota chama o **`TransitionRentUseCase`** via `execute(id, input)`
-4. O use case:
-   - Carrega o `Rent` via `rentRepo.findById` (helper `findEntity` converte `undefined` em erro de domínio)
-   - Valida a transição permitida por `VALID_TRANSITIONS`
-   - Para `WAITING_DROPOFF`: exige `lockerId`, carrega o `Locker`, valida estado (`OPEN` e `isOccupied=false`) e então atualiza o locker para `CLOSED/isOccupied=true`
-   - Para `WAITING_PICKUP`: exige que `rent.lockerId` exista (ignora `lockerId` do body, preservando a imutabilidade do vínculo)
-   - Para `DELIVERED`: carrega o locker referenciado por `rent.lockerId`, valida `isOccupied=true` e então atualiza o locker para `OPEN/isOccupied=false`
-   - Atualiza o `Rent` no repositório com o novo `status` (e `lockerId` apenas quando aplicável)
-5. Se o domínio lançar `DomainError`, o handler central converte para HTTP consistente (status code e `domainCode`).
-
-> [!IMPORTANT]
-> Mesmo sem transações de banco (persistência é em JSON), o use case aplica *guards* e invariantes para evitar “partial updates” quando uma condição de negócio falha.
-
-### Diagrama (Sequence Diagram)
-
-```mermaid
-sequenceDiagram
-  participant Client as Cliente
-  participant Route as FastifyRoute
-  participant Zod as Zod
-  participant UC as TransitionRentUseCase
-  participant RentRepo as IRentRepository
-  participant LockerRepo as ILockerRepository
-  participant JsonStore as JsonStore
-  participant Files as JSONFiles
-
-  Client->>Route: PATCH rents id
-  Route->>Zod: parse(body)
-  Zod-->>Route: input valido
-  Route->>UC: execute(id, input)
-  UC->>RentRepo: findById(id)
-  RentRepo->>JsonStore: readCollection("rents.json")
-  JsonStore-->>Files: ler rents.json
-  JsonStore-->>RentRepo: rents[]
-
-  alt WAITING_DROPOFF
-    UC->>LockerRepo: findById(lockerId)
-    LockerRepo->>JsonStore: readCollection("lockers.json")
-    JsonStore-->>Files: ler lockers.json
-    JsonStore-->>LockerRepo: lockers[]
-    UC->>LockerRepo: update(lockerId, status CLOSED, ocupado true)
-    LockerRepo->>JsonStore: writeCollection("lockers.json", ...)
-    JsonStore-->>Files: persistir lockers.json
-  end
-
-  UC->>RentRepo: update(rentId, status, lockerIdOpt)
-  RentRepo->>JsonStore: writeCollection("rents.json", ...)
-  JsonStore-->>Files: persistir rents.json
-  UC-->>Route: Rent atualizado
-  Route-->>Client: 200 OK ou erro
-```
-
-## 4. Estratégia de Testes
+## 2. Estratégia de Testes
 
 ### Onde residem os testes
 
